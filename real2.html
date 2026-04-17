@@ -1,0 +1,1284 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>محلل الذكاء الاصطناعي | معرض التمييز بين الصور</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --neon-blue: #00f3ff;
+            --neon-purple: #bc13fe;
+            --neon-pink: #ff006e;
+            --neon-green: #00ff88;
+            --dark-bg: #0a0a0f;
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            font-family: 'Cairo', sans-serif;
+            background: var(--dark-bg);
+            color: white;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        .bg-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(188, 19, 254, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(0, 243, 255, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(255, 0, 110, 0.1) 0%, transparent 50%);
+        }
+
+        .grid-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(0, 243, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 243, 255, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            z-index: -1;
+            animation: gridMove 20s linear infinite;
+        }
+
+        @keyframes gridMove {
+            0% { transform: perspective(500px) rotateX(60deg) translateY(0); }
+            100% { transform: perspective(500px) rotateX(60deg) translateY(50px); }
+        }
+
+        .screen {
+            display: none;
+            min-height: 100vh;
+            padding: 20px;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .screen.active {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* شاشة البداية */
+        .start-screen h1 {
+            font-size: clamp(2rem, 6vw, 4rem);
+            font-weight: 800;
+            text-align: center;
+            margin-bottom: 15px;
+            background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple), var(--neon-pink));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: titleGlow 3s ease-in-out infinite alternate;
+        }
+
+        @keyframes titleGlow {
+            from { filter: drop-shadow(0 0 20px rgba(0, 243, 255, 0.5)); }
+            to { filter: drop-shadow(0 0 30px rgba(188, 19, 254, 0.5)); }
+        }
+
+        .subtitle {
+            font-size: 1.3rem;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        /* نافذة إدخال الاسم */
+        .player-input-container {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 500px;
+            width: 90%;
+            margin-bottom: 30px;
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .player-input-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--neon-blue), var(--neon-purple));
+        }
+
+        .input-group {
+            margin-bottom: 25px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: var(--neon-blue);
+            font-size: 1.1rem;
+        }
+
+        .player-name-input {
+            width: 100%;
+            padding: 15px 20px;
+            font-size: 1.2rem;
+            border: 2px solid var(--glass-border);
+            border-radius: 12px;
+            background: rgba(0, 0, 0, 0.3);
+            color: white;
+            font-family: 'Cairo', sans-serif;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .player-name-input:focus {
+            outline: none;
+            border-color: var(--neon-blue);
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.2);
+        }
+
+        .player-name-input::placeholder {
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            max-width: 900px;
+            margin-bottom: 40px;
+        }
+
+        .feature-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            padding: 25px;
+            border-radius: 20px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .feature-icon {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+        }
+
+        .feature-title {
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: var(--neon-blue);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple));
+            border: none;
+            padding: 18px 50px;
+            font-size: 1.2rem;
+            color: white;
+            border-radius: 50px;
+            cursor: pointer;
+            font-family: 'Cairo', sans-serif;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 40px rgba(0, 243, 255, 0.3);
+            width: 100%;
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 50px rgba(188, 19, 254, 0.5);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* شاشة اللعب */
+        .game-header {
+            width: 100%;
+            max-width: 1400px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px 25px;
+            background: var(--glass-bg);
+            border-radius: 15px;
+            border: 1px solid var(--glass-border);
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .player-display {
+            color: var(--neon-blue);
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+
+        .score-display {
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
+
+        .score-display span {
+            color: var(--neon-blue);
+            font-size: 1.8rem;
+        }
+
+        .round-indicator {
+            background: rgba(188, 19, 254, 0.2);
+            padding: 8px 20px;
+            border-radius: 20px;
+            border: 1px solid var(--neon-purple);
+        }
+
+        /* منطقة الصور والتحليل */
+        .game-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            width: 100%;
+            max-width: 1400px;
+            align-items: start;
+        }
+
+        .images-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .image-card {
+            position: relative;
+            background: var(--glass-bg);
+            border: 3px solid var(--glass-border);
+            border-radius: 20px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.4s ease;
+            aspect-ratio: 4/3;
+        }
+
+        .image-card:hover:not(.disabled) {
+            transform: scale(1.03);
+            border-color: var(--neon-blue);
+            box-shadow: 0 20px 60px rgba(0, 243, 255, 0.3);
+        }
+
+        .image-card.disabled {
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .image-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .image-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            opacity: 0;
+            transform: scale(0.8);
+            transition: all 0.3s ease;
+        }
+
+        .image-badge.show {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .badge-real {
+            background: var(--neon-green);
+            color: #000;
+        }
+
+        .badge-ai {
+            background: var(--neon-pink);
+            color: white;
+        }
+
+        /* لوحة التحليل */
+        .analysis-panel {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 25px;
+            min-height: 400px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .analysis-panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--neon-blue), var(--neon-purple));
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .ai-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--neon-purple), var(--neon-pink));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .panel-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+        }
+
+        .analysis-content {
+            font-family: 'JetBrains Mono', monospace;
+            line-height: 1.8;
+        }
+
+        .waiting-state {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.5);
+            padding: 50px 20px;
+        }
+
+        .scanning-line {
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--neon-blue), transparent);
+            animation: scan 2s linear infinite;
+            margin: 20px 0;
+        }
+
+        @keyframes scan {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .result-box {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-right: 4px solid var(--neon-blue);
+        }
+
+        .result-title {
+            color: var(--neon-blue);
+            font-weight: 700;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+
+        .artifact-list {
+            list-style: none;
+            margin-top: 15px;
+        }
+
+        .artifact-list li {
+            padding: 10px 0;
+            padding-right: 25px;
+            position: relative;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .artifact-list li::before {
+            content: '▸';
+            position: absolute;
+            right: 0;
+            color: var(--neon-purple);
+        }
+
+        .confidence-meter {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+        }
+
+        .meter-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+
+        .meter-bar {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .meter-fill {
+            height: 100%;
+            border-radius: 10px;
+            transition: width 1s ease;
+        }
+
+        .next-btn {
+            width: 100%;
+            margin-top: 20px;
+            padding: 15px;
+            background: linear-gradient(135deg, var(--neon-green), #00cc6a);
+            border: none;
+            border-radius: 12px;
+            color: #000;
+            font-family: 'Cairo', sans-serif;
+            font-weight: 700;
+            font-size: 1.1rem;
+            cursor: pointer;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s ease;
+        }
+
+        .next-btn.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* تأثيرات الصح والخطأ */
+        .correct-answer {
+            animation: correctPulse 0.6s ease;
+            border-color: var(--neon-green) !important;
+            box-shadow: 0 0 40px rgba(0, 255, 136, 0.4) !important;
+        }
+
+        .wrong-answer {
+            animation: wrongShake 0.5s ease;
+            border-color: var(--neon-pink) !important;
+            box-shadow: 0 0 40px rgba(255, 0, 110, 0.4) !important;
+        }
+
+        @keyframes correctPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.03); }
+        }
+
+        @keyframes wrongShake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-8px); }
+            75% { transform: translateX(8px); }
+        }
+
+        /* شاشة النتائج */
+        .result-content {
+            width: 100%;
+            max-width: 1000px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        @media (max-width: 768px) {
+            .result-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .result-left {
+            text-align: center;
+        }
+
+        .result-screen h2 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+        }
+
+        .final-score {
+            font-size: 4rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--neon-blue), var(--neon-pink));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 15px;
+        }
+
+        .result-message {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        /* لوحة المتصدرين */
+        .leaderboard {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 25px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .leaderboard-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: var(--neon-blue);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .leaderboard-title::before {
+            content: '🏆';
+        }
+
+        .leaderboard-list {
+            list-style: none;
+        }
+
+        .leaderboard-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            margin-bottom: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            border-right: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .leaderboard-item:hover {
+            transform: translateX(-5px);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .leaderboard-item.current-player {
+            border-right-color: var(--neon-green);
+            background: rgba(0, 255, 136, 0.1);
+            animation: highlight 2s ease;
+        }
+
+        @keyframes highlight {
+            0%, 100% { box-shadow: 0 0 0 rgba(0, 255, 136, 0); }
+            50% { box-shadow: 0 0 20px rgba(0, 255, 136, 0.3); }
+        }
+
+        .leaderboard-rank {
+            font-weight: 800;
+            font-size: 1.2rem;
+            width: 30px;
+            color: var(--neon-purple);
+        }
+
+        .leaderboard-name {
+            flex: 1;
+            text-align: right;
+            margin: 0 15px;
+            font-weight: 600;
+        }
+
+        .leaderboard-score {
+            font-weight: 700;
+            color: var(--neon-blue);
+            font-size: 1.1rem;
+        }
+
+        .leaderboard-date {
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.5);
+            margin-right: 10px;
+        }
+
+        .learning-summary {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 800px;
+            margin-bottom: 30px;
+            grid-column: 1 / -1;
+        }
+
+        .tip-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .tip-card {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 15px;
+            border-right: 3px solid var(--neon-blue);
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .game-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .images-section {
+                order: 1;
+            }
+            
+            .analysis-panel {
+                order: 2;
+                min-height: auto;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .images-section {
+                grid-template-columns: 1fr;
+            }
+            
+            .player-input-container {
+                padding: 25px;
+            }
+        }
+
+        /* تأثير الكتابة */
+        .typing-text {
+            overflow: hidden;
+            border-right: 2px solid var(--neon-blue);
+            white-space: nowrap;
+            animation: typing 3s steps(40, end), blink-caret 0.75s step-end infinite;
+        }
+
+        @keyframes typing {
+            from { width: 0 }
+            to { width: 100% }
+        }
+
+        @keyframes blink-caret {
+            from, to { border-color: transparent }
+            50% { border-color: var(--neon-blue) }
+        }
+
+        /* رسائل الخطأ */
+        .error-message {
+            color: var(--neon-pink);
+            font-size: 0.9rem;
+            margin-top: 5px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+            animation: shake 0.5s ease;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-animation"></div>
+    <div class="grid-overlay"></div>
+
+    <!-- شاشة البداية -->
+    <div class="screen active" id="startScreen">
+        <h1>محلل الذكاء الاصطناعي</h1>
+        <p class="subtitle">اكتشف أسرار التمييز بين الصور الحقيقية والمولدة بالذكاء الاصطناعي</p>
+        
+        <div class="player-input-container">
+            <div class="input-group">
+                <label for="playerName">👤 أدخل اسمك</label>
+                <input 
+                    type="text" 
+                    id="playerName" 
+                    class="player-name-input" 
+                    placeholder="اكتب اسمك هنا..." 
+                    maxlength="20"
+                    autocomplete="off"
+                >
+                <div class="error-message" id="nameError">الرجاء إدخال اسمك للمتابعة</div>
+            </div>
+            <button class="btn" onclick="startGame()" id="startBtn">ابدأ التحليل</button>
+        </div>
+
+        <div class="features">
+            <div class="feature-card">
+                <div class="feature-icon">🔍</div>
+                <div class="feature-title">تحليل تقني</div>
+                <p>تعرف على العيوب والمميزات التقنية لكل صورة</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🧠</div>
+                <div class="feature-title">تعلم الآليات</div>
+                <p>افهم كيف يكتشف الذكاء الاصطناعي الصور المزيفة</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">⚡</div>
+                <div class="feature-title">تحدي الوقت</div>
+                <p>اختبر سرعة ملاحظتك في 30 ثانية لكل صورة</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- شاشة اللعب -->
+    <div class="screen" id="gameScreen">
+        <div class="game-header">
+            <div class="player-display" id="currentPlayerDisplay">👤 اللاعب: </div>
+            <div class="score-display">النقاط: <span id="currentScore">0</span></div>
+            <div class="round-indicator">الجولة <span id="currentRound">1</span> من <span id="totalRounds">5</span></div>
+            <div style="color: var(--neon-pink); font-family: monospace; font-size: 1.3rem;" id="timer">00:30</div>
+        </div>
+
+        <div class="game-content">
+            <div class="images-section" id="imagesContainer">
+                <!-- سيتم إضافة الصور هنا -->
+            </div>
+
+            <div class="analysis-panel">
+                <div class="panel-header">
+                    <div class="ai-icon">🤖</div>
+                    <div class="panel-title">نظام التحليل الذكي</div>
+                </div>
+                
+                <div class="analysis-content" id="analysisContent">
+                    <div class="waiting-state">
+                        <div style="font-size: 3rem; margin-bottom: 20px;">👁️</div>
+                        <p>اختر إحدى الصورتين لبدء التحليل التقني</p>
+                        <div class="scanning-line"></div>
+                    </div>
+                </div>
+
+                <button class="next-btn" id="nextBtn" onclick="nextRound()">الجولة التالية →</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- شاشة النتائج -->
+    <div class="screen" id="resultScreen">
+        <h2>اكتمل التحليل!</h2>
+        
+        <div class="result-content">
+            <div class="result-left">
+                <div class="final-score" id="finalScore">0%</div>
+                <p class="result-message" id="resultMessage"></p>
+                <div style="font-size: 1.1rem; color: var(--neon-blue); margin-bottom: 20px;">
+                    👤 <span id="finalPlayerName"></span>
+                </div>
+            </div>
+
+            <div class="leaderboard">
+                <div class="leaderboard-title">أفضل النتائج</div>
+                <ul class="leaderboard-list" id="leaderboardList">
+                    <!-- سيتم إضافة النتائج هنا -->
+                </ul>
+            </div>
+
+            <div class="learning-summary">
+                <h3 style="color: var(--neon-blue); margin-bottom: 15px;">📚 ملخص ما تعلمته</h3>
+                <p style="line-height: 1.8; margin-bottom: 20px;">
+                    الآن يمكنك التعرف على هذه العلامات في الصور المولدة بالذكاء الاصطناعي:
+                </p>
+                <div class="tip-grid">
+                    <div class="tip-card">
+                        <strong style="color: var(--neon-pink); display: block; margin-bottom: 8px;">👁️ العيون والأصابع</strong>
+                        غالباً ما تكون غير متناسقة أو بها أعداد غير طبيعية من الأصابع
+                    </div>
+                    <div class="tip-card">
+                        <strong style="color: var(--neon-pink); display: block; margin-bottom: 8px;">🎨 الخلفيات</strong>
+                        قد تحتوي على تشوهات أو تفاصيل غير منطقية عند التكبير
+                    </div>
+                    <div class="tip-card">
+                        <strong style="color: var(--neon-pink); display: block; margin-bottom: 8px;">💡 الإضاءة</strong>
+                        اتجاه الظلال قد لا يتطابق مع مصدر الضوء
+                    </div>
+                    <div class="tip-card">
+                        <strong style="color: var(--neon-pink); display: block; margin-bottom: 8px;">📝 النصوص</strong>
+                        غير قابلة للقراءة أو تحتوي على رموز عشوائية
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <button class="btn" onclick="resetGame()" style="max-width: 300px;">تحليل جديد</button>
+    </div>
+
+    <script>
+        // بيانات اللعبة مع التحليل التقني
+        const gameData = [
+            {
+                real: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800",
+                ai: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800",
+                category: "طبيعة",
+                realAnalysis: {
+                    verdict: "صورة حقيقية",
+                    confidence: 94,
+                    points: [
+                        "تفاصيل دقيقة في الصخور والأشجار مع نسيج طبيعي",
+                        "تدرجات لونية واقعية في السماء مع تغيرات طبيعية في الإضاءة",
+                        "ظلال متناسقة مع اتجاه مصدر الضوء الرئيسي",
+                        "عيوب طبيعية في العدسة (Lens Flare) في الزوايا"
+                    ],
+                    type: "real"
+                },
+                aiAnalysis: {
+                    verdict: "صورة مولدة بالذكاء الاصطناعي",
+                    confidence: 89,
+                    points: [
+                        "تشوهات في تفاصيل الأشجار البعيدة (أغصان متشابكة بشكل غير طبيعي)",
+                        "تكرار نمطي في نسيج الصخور يشبه البلاط",
+                        "سماء 'مثالية' جداً بدون تباين في درجات اللون",
+                        "حدود غير واضحة بين العناصر المختلفة (Blending Artifacts)"
+                    ],
+                    type: "ai"
+                }
+            },
+            {
+                real: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=800",
+                ai: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=800",
+                category: "بورتريه",
+                realAnalysis: {
+                    verdict: "صورة حقيقية",
+                    confidence: 96,
+                    points: [
+                        "مسام الجليد وخطوط دقيقة طبيعية في البشرة",
+                        "انعكاسات دقيقة وطبيعية في العين (Catchlights)",
+                        "عيوب طفيفة في الإضاءة تدل على تصوير طبيعي",
+                        "عمق مجال حقيقي (Depth of Field) مع تدرج طبيعي"
+                    ],
+                    type: "real"
+                },
+                aiAnalysis: {
+                    verdict: "صورة مولدة بالذكاء الاصطناعي",
+                    confidence: 92,
+                    points: [
+                        "تناسق 'مثالي' جداً في البشرة يفتقر للعيوب الطبيعية",
+                        "تشوهات طفيفة في شكل بؤبؤ العين",
+                        "حدود غير واضحة بين الشعر والخلفية",
+                        "تكرار نمطي في خصلات الشعر (Hair Strands Pattern)"
+                    ],
+                    type: "ai"
+                }
+            },
+            {
+                real: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=800",
+                ai: "https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=800",
+                category: "طعام",
+                realAnalysis: {
+                    verdict: "صورة حقيقية",
+                    confidence: 91,
+                    points: [
+                        "قوام طبيعي للجبنة مع فقاعات هواء متفاوتة الحجم",
+                        "توزيع عشوائي للمكونات (فلفل، زيتون) بدون تكرار",
+                        "ظلال واقعية تحت كل قطعة بيتزا",
+                        "انعكاسات ضوء طبيعية على الزيت والصلصة"
+                    ],
+                    type: "real"
+                },
+                aiAnalysis: {
+                    verdict: "صورة مولدة بالذكاء الاصطناعي",
+                    confidence: 87,
+                    points: [
+                        "تشوهات في شكل شرائح الببروني (حواف غير منتظمة)",
+                        "تكرار نمطي في توزيع الخضروات",
+                        "قوام 'بلاستيكي' للجبنة بدون تفاصيل حقيقية",
+                        "ألوان مشبعة بشكل غير طبيعي (Oversaturation)"
+                    ],
+                    type: "ai"
+                }
+            },
+            {
+                real: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=800",
+                ai: "https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?w=800",
+                category: "مدينة",
+                realAnalysis: {
+                    verdict: "صورة حقيقية",
+                    confidence: 93,
+                    points: [
+                        "تفاصيل معمارية دقيقة ومنطقية في المباني",
+                        "انعكاسات حقيقية في نوافذ الزجاج",
+                        "أشخاص بأوضاع طبيعية ومتباينة",
+                        "علامات تآكل طبيعية على الأسطح والجدران"
+                    ],
+                    type: "real"
+                },
+                aiAnalysis: {
+                    verdict: "صورة مولدة بالذكاء الاصطناعي",
+                    confidence: 90,
+                    points: [
+                        "تشوهات في الخطوط المعمارية (مباني منحنية بشكل غير طبيعي)",
+                        "نوافذ غير متناسقة الحجم أو الموقع",
+                        "غياب التفاصيل الدقيقة عند التكبير (Blurry Details)",
+                        "أشخاص بأوضاع غير طبيعية أو وجوه مشوهة"
+                    ],
+                    type: "ai"
+                }
+            },
+            {
+                real: "https://images.unsplash.com/photo-1517849845537-4d257902454a?w=800",
+                ai: "https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=800",
+                category: "حيوانات",
+                realAnalysis: {
+                    verdict: "صورة حقيقية",
+                    confidence: 95,
+                    points: [
+                        "فراء طبيعي مع تفاصيل دقيقة في كل شعرة",
+                        "عيون حية مع انعكاسات طبيعية للضوء",
+                        "خلفية طبيعية مع تأثير العمق (Bokeh) واقعي",
+                        "تعبير وجه حقيقي وعفوي للحيوان"
+                    ],
+                    type: "real"
+                },
+                aiAnalysis: {
+                    verdict: "صورة مولدة بالذكاء الاصطناعي",
+                    confidence: 88,
+                    points: [
+                        "تشوهات في أنف الحيوان (فتحات أنف غير متناظرة)",
+                        "فراء 'مثالي' جداً بدون تفاصيل دقيقة",
+                        "خلفية مشوهة بشكل غير طبيعي (Artifacts)",
+                        "تناقض في الإضاءة بين الحيوان والخلفية"
+                    ],
+                    type: "ai"
+                }
+            }
+        ];
+
+        let currentRound = 0;
+        let score = 0;
+        let timer;
+        let timeLeft = 30;
+        let isProcessing = false;
+        let currentPlayer = '';
+
+        function startGame() {
+            const nameInput = document.getElementById('playerName');
+            const nameError = document.getElementById('nameError');
+            const playerName = nameInput.value.trim();
+            
+            if (!playerName) {
+                nameError.classList.add('show');
+                nameInput.focus();
+                setTimeout(() => nameError.classList.remove('show'), 3000);
+                return;
+            }
+            
+            currentPlayer = playerName;
+            document.getElementById('currentPlayerDisplay').textContent = `👤 اللاعب: ${currentPlayer}`;
+            
+            document.getElementById('startScreen').classList.remove('active');
+            document.getElementById('gameScreen').classList.add('active');
+            currentRound = 0;
+            score = 0;
+            document.getElementById('totalRounds').textContent = gameData.length;
+            loadRound();
+        }
+
+        // السماح بالبدء بالضغط على Enter
+        document.getElementById('playerName')?.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                startGame();
+            }
+        });
+
+        function loadRound() {
+            if (currentRound >= gameData.length) {
+                endGame();
+                return;
+            }
+
+            const data = gameData[currentRound];
+            const container = document.getElementById('imagesContainer');
+            
+            // ترتيب عشوائي
+            const isRealLeft = Math.random() > 0.5;
+            const leftImage = isRealLeft ? data.real : data.ai;
+            const rightImage = isRealLeft ? data.ai : data.real;
+            const leftIsReal = isRealLeft;
+            const rightIsReal = !isRealLeft;
+
+            container.innerHTML = `
+                <div class="image-card" id="cardLeft" onclick="checkAnswer(this, ${leftIsReal}, 'left')" data-real="${leftIsReal}">
+                    <img src="${leftImage}" alt="صورة 1">
+                    <div class="image-badge ${leftIsReal ? 'badge-real' : 'badge-ai'}" id="badgeLeft">
+                        ${leftIsReal ? '✓ حقيقية' : '✗ AI'}
+                    </div>
+                </div>
+                <div class="image-card" id="cardRight" onclick="checkAnswer(this, ${rightIsReal}, 'right')" data-real="${rightIsReal}">
+                    <img src="${rightImage}" alt="صورة 2">
+                    <div class="image-badge ${rightIsReal ? 'badge-real' : 'badge-ai'}" id="badgeRight">
+                        ${rightIsReal ? '✓ حقيقية' : '✗ AI'}
+                    </div>
+                </div>
+            `;
+
+            // إعادة تعيين لوحة التحليل
+            document.getElementById('analysisContent').innerHTML = `
+                <div class="waiting-state">
+                    <div style="font-size: 3rem; margin-bottom: 20px;">👁️</div>
+                    <p>اختر إحدى الصورتين لبدء التحليل التقني</p>
+                    <div class="scanning-line"></div>
+                </div>
+            `;
+            
+            document.getElementById('nextBtn').classList.remove('show');
+            document.getElementById('currentRound').textContent = currentRound + 1;
+            document.getElementById('currentScore').textContent = score;
+            
+            timeLeft = 30;
+            startTimer();
+            isProcessing = false;
+        }
+
+        function startTimer() {
+            clearInterval(timer);
+            updateTimerDisplay();
+            timer = setInterval(() => {
+                timeLeft--;
+                updateTimerDisplay();
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    revealAnswer();
+                }
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            document.getElementById('timer').textContent = 
+                `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        function checkAnswer(element, isReal, position) {
+            if (isProcessing) return;
+            isProcessing = true;
+            clearInterval(timer);
+
+            const data = gameData[currentRound];
+            const analysis = isReal ? data.realAnalysis : data.aiAnalysis;
+            
+            // تعطيل النقر على الصور
+            document.querySelectorAll('.image-card').forEach(card => {
+                card.classList.add('disabled');
+                card.onclick = null;
+            });
+
+            // إظهار الشارات
+            document.getElementById('badgeLeft').classList.add('show');
+            document.getElementById('badgeRight').classList.add('show');
+
+            // تلوين الإجابة
+            if (isReal) {
+                element.classList.add('correct-answer');
+                score++;
+                document.getElementById('currentScore').textContent = score;
+            } else {
+                element.classList.add('wrong-answer');
+                // إظهار الصورة الحقيقية باللون الأخضر
+                const realCard = document.querySelector(`[data-real="true"]`);
+                if (realCard) realCard.classList.add('correct-answer');
+            }
+
+            // عرض التحليل
+            showAnalysis(analysis, isReal);
+        }
+
+        function revealAnswer() {
+            // انتهاء الوقت - إظهار الإجابة الصحيحة
+            document.querySelectorAll('.image-card').forEach(card => {
+                card.classList.add('disabled');
+                card.onclick = null;
+            });
+            
+            document.getElementById('badgeLeft').classList.add('show');
+            document.getElementById('badgeRight').classList.add('show');
+            
+            const realCard = document.querySelector(`[data-real="true"]`);
+            if (realCard) realCard.classList.add('correct-answer');
+            
+            const data = gameData[currentRound];
+            showAnalysis(data.realAnalysis, true);
+        }
+
+        function showAnalysis(analysis, userChoseReal) {
+            const content = document.getElementById('analysisContent');
+            const isReal = analysis.type === 'real';
+            const color = isReal ? 'var(--neon-green)' : 'var(--neon-pink)';
+            const icon = isReal ? '✓' : '✗';
+            
+            // بناء قائمة النقاط
+            const pointsList = analysis.points.map(point => `<li>${point}</li>`).join('');
+            
+            content.innerHTML = `
+                <div class="result-box" style="border-right-color: ${color};">
+                    <div class="result-title" style="color: ${color}; font-size: 1.3rem;">
+                        ${icon} ${analysis.verdict}
+                    </div>
+                    <p style="opacity: 0.8; line-height: 1.6;">
+                        ${isReal ? 
+                            'هذه الصورة تظهر خصائص الصور الفوتوغرافية الحقيقية مع تفاصيل طبيعية وعيوب عدسة واقعية.' : 
+                            'تم اكتشاف علامات توليد الذكاء الاصطناعي مع تشوهات نمطية وافتقاد للتفاصيل الدقيقة.'}
+                    </p>
+                </div>
+                
+                <div style="margin-bottom: 15px; font-weight: 700; color: var(--neon-blue);">
+                    🔍 نقاط التحليل التقني:
+                </div>
+                
+                <ul class="artifact-list">
+                    ${pointsList}
+                </ul>
+                
+                <div class="confidence-meter">
+                    <div class="meter-label">
+                        <span>نسبة الثقة في التحليل</span>
+                        <span style="color: ${color};">${analysis.confidence}%</span>
+                    </div>
+                    <div class="meter-bar">
+                        <div class="meter-fill" style="width: 0%; background: ${color};" id="confidenceFill"></div>
+                    </div>
+                </div>
+            `;
+            
+            // تأثير تعبئة شريط الثقة
+            setTimeout(() => {
+                document.getElementById('confidenceFill').style.width = analysis.confidence + '%';
+            }, 100);
+            
+            // إظهار زر التالي
+            setTimeout(() => {
+                document.getElementById('nextBtn').classList.add('show');
+            }, 500);
+        }
+
+        function nextRound() {
+            currentRound++;
+            loadRound();
+        }
+
+        function saveScore(playerName, score, percentage) {
+            // الحصول على النتائج المحفوظة أو إنشاء مصفوفة جديدة
+            let leaderboard = JSON.parse(localStorage.getItem('aiAnalyzerLeaderboard') || '[]');
+            
+            // إضافة النتيجة الجديدة
+            const newEntry = {
+                name: playerName,
+                score: score,
+                percentage: percentage,
+                date: new Date().toLocaleDateString('ar-SA'),
+                timestamp: Date.now()
+            };
+            
+            leaderboard.push(newEntry);
+            
+            // ترتيب النتائج تنازلياً (حسب النقاط)
+            leaderboard.sort((a, b) => b.score - a.score);
+            
+            // الاحتفاظ بأفضل 10 نتائج فقط
+            leaderboard = leaderboard.slice(0, 10);
+            
+            // حفظ في التخزين المحلي
+            localStorage.setItem('aiAnalyzerLeaderboard', JSON.stringify(leaderboard));
+            
+            return leaderboard;
+        }
+
+        function displayLeaderboard(currentPlayerName, currentScore) {
+            const leaderboard = JSON.parse(localStorage.getItem('aiAnalyzerLeaderboard') || '[]');
+            const listContainer = document.getElementById('leaderboardList');
+            
+            if (leaderboard.length === 0) {
+                listContainer.innerHTML = '<li style="text-align: center; color: rgba(255,255,255,0.5);">لا توجد نتائج مسجلة بعد</li>';
+                return;
+            }
+            
+            listContainer.innerHTML = leaderboard.map((entry, index) => {
+                const isCurrentPlayer = entry.name === currentPlayerName && entry.score === currentScore;
+                const rank = index + 1;
+                let medal = '';
+                
+                if (rank === 1) medal = '🥇 ';
+                else if (rank === 2) medal = '🥈 ';
+                else if (rank === 3) medal = '🥉 ';
+                
+                return `
+                    <li class="leaderboard-item ${isCurrentPlayer ? 'current-player' : ''}">
+                        <span class="leaderboard-rank">${medal}${rank}</span>
+                        <span class="leaderboard-name">${entry.name}</span>
+                        <span class="leaderboard-date">${entry.date}</span>
+                        <span class="leaderboard-score">${entry.score}/${gameData.length}</span>
+                    </li>
+                `;
+            }).join('');
+        }
+
+        function endGame() {
+            document.getElementById('gameScreen').classList.remove('active');
+            document.getElementById('resultScreen').classList.add('active');
+            
+            const percentage = Math.round((score / gameData.length) * 100);
+            document.getElementById('finalScore').textContent = percentage + '%';
+            document.getElementById('finalPlayerName').textContent = currentPlayer;
+            
+            let message = '';
+            if (percentage >= 80) {
+                message = 'ممتاز! لديك ملاحظة تقنية قوية في التمييز بين الصور 👁️✨';
+            } else if (percentage >= 60) {
+                message = 'جيد! لكن الذكاء الاصطناعي يصبح أكثر ذكاءً. واصل التعلم! 🤖';
+            } else {
+                message = 'لا بأس! الآن بعد أن تعرفت على العلامات، جرب مرة أخرى! 🎯';
+            }
+            document.getElementById('resultMessage').textContent = message;
+            
+            // حفظ النتيجة وعرض المتصدرين
+            saveScore(currentPlayer, score, percentage);
+            displayLeaderboard(currentPlayer, score);
+        }
+
+        function resetGame() {
+            document.getElementById('resultScreen').classList.remove('active');
+            document.getElementById('startScreen').classList.add('active');
+            // إعادة تعيين حقل الاسم
+            document.getElementById('playerName').value = '';
+        }
+    </script>
+</body>
+</html>
